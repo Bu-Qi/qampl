@@ -50,6 +50,7 @@ contract qampl_airdrop is SafeMath{
     address[] public  qkswap_Pairs;
     uint public require_qampl=2e21;
     address qkswap_pair_quaddress = 0x7439da46526DE466c72E67E26e9aB363d7731B22;
+    address QAowner = 0xD4a1a03bEeEAba88EAb481D8632Ac6e803936935;
     constructor() {
         owner = msg.sender;
     }
@@ -57,14 +58,14 @@ contract qampl_airdrop is SafeMath{
     //仅容许管理员可以触发空投合约
     function airdrop() public {
         require(block.timestamp - Last_airdrop_time >= 86400);
-        //给USDT对多空投0.2%
+        require(msg.sender == owner);
         uint airdrop_qampl1 = token(qampl_address).balanceOf(qkswap_pair_quaddress)/830;
-            safeTransferFrom(qampl_address,owner,qkswap_pair_quaddress,airdrop_qampl1);
+            safeTransferFrom(qampl_address,QAowner,qkswap_pair_quaddress,airdrop_qampl1);
          for(uint i;i<qkswap_Pairs.length;i++)
         {
             //给币对空投1%持有量
             uint airdrop_qampl2 = token(qampl_address).balanceOf(qkswap_Pairs[i])/100;
-            safeTransferFrom(qampl_address,owner,qkswap_Pairs[i],airdrop_qampl2);
+            safeTransferFrom(qampl_address,QAowner,qkswap_Pairs[i],airdrop_qampl2);
 
             //刷新流动池的余额
             IQkswapV2Pair pair = IQkswapV2Pair(qkswap_Pairs[i]);
