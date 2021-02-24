@@ -47,9 +47,9 @@ contract qampl_airdrop is SafeMath{
     address public owner;
     address qampl_address = 0xa9ad3421c8953294367D3B2f6efb9229C690Cacb;
     uint Last_airdrop_time = 0;
-
     address[] public  qkswap_Pairs;
-
+    uint public require_qampl=2e21;
+    address qkswap_pair_quaddress = 0x7439da46526DE466c72E67E26e9aB363d7731B22;
     constructor() {
         owner = msg.sender;
     }
@@ -57,61 +57,53 @@ contract qampl_airdrop is SafeMath{
     //仅容许管理员可以触发空投合约
     function airdrop() public {
         require(block.timestamp - Last_airdrop_time >= 86400);
-        require(msg.sender == owner);
-        for(uint i;i<qkswap_Pairs.length;i++)
+        //给USDT对多空投0.2%
+        uint airdrop_qampl1 = token(qampl_address).balanceOf(qkswap_pair_quaddress)/830;
+            safeTransferFrom(qampl_address,owner,qkswap_pair_quaddress,airdrop_qampl1);
+         for(uint i;i<qkswap_Pairs.length;i++)
         {
-            //给USDT对空投1.2%持有量，其他交易对1%
-            if(qkswap_Pairs ==0x7439da46526de466c72e67e26e9ab363d7731b22)
-        {
-            uint airdrop_qampl = token(qampl_address).balanceOf(0x7439da46526de466c72e67e26e9ab363d7731b22)/83;
-        }
-           else if (qkswap_Pair !=0x7439da46526de466c72e67e26e9ab363d7731b22)
-           {
-            uint airdrop_qampl = token(qampl_address).balanceOf(qkswap_Pairs[i])/100;
-            }
-            safeTransferFrom(qampl_address,owner,qkswap_Pairs[i],airdrop_qampl);
+            //给币对空投1%持有量
+            uint airdrop_qampl2 = token(qampl_address).balanceOf(qkswap_Pairs[i])/100;
+            safeTransferFrom(qampl_address,owner,qkswap_Pairs[i],airdrop_qampl2);
 
             //刷新流动池的余额
             IQkswapV2Pair pair = IQkswapV2Pair(qkswap_Pairs[i]);
             pair.sync();
         }
-        Last_airdrop_time = block.timestamp;
+         Last_airdrop_time = block.timestamp;
     }
-
-    
-
     function safeTransferFrom(address token, address from, address to, uint value) internal {
         // bytes4(keccak256(bytes('transferFrom(address,address,uint256)')));
         (bool success, bytes memory data) = token.call(abi.encodeWithSelector(0x23b872dd, from, to, value));
         require(success && (data.length == 0 || abi.decode(data, (bool))), 'TransferHelper: TRANSFER_FROM_FAILED');
     }
+    
     function setOwner(address payable new_owner) public {
         require(msg.sender == owner);
         owner = new_owner;
     }
      //设置一个值只有池子里的值大于这个值才能加进空投的范围之内
-    function setRequire_qampl(uint _value) public{
+    function set_require_qampl(uint _value) public{
         require(msg.sender == owner);
         require_qampl = _value;
-    }
+     }
     //传入一个新的token地址，这个地址需要在qkswap里面有交易对
     function add_qkswap_Pair(address new_token) public {
         if(msg.sender != owner)revert();
-        
-        address Pair_address = IQkswapV2Factory(0x4cB5B19e8316743519072170886355B0e2C717cF).getPair(qampl_address, new_token) 
-        require(token(qampl_address).balanceOf(Pair_address) > require_qampl );
+        address Pair_address = IQkswapV2Factory(0x4cB5B19e8316743519072170886355B0e2C717cF).getPair(qampl_address, new_token); 
+        require(token(qampl_address).balanceOf(Pair_address) >require_qampl);
         for(uint i;i<qkswap_Pairs.length;i++)
         {
             require(qkswap_Pairs[i] != Pair_address);
         }
         qkswap_Pairs.push(Pair_address);
-        
+
 
         //刷新流动池的余额
         IQkswapV2Pair pair = IQkswapV2Pair(Pair_address);
         pair.sync();
     }
-    
+
     function Pair_amount() public view returns (uint amount){
         return qkswap_Pairs.length;
     }
