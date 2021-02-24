@@ -42,7 +42,7 @@ contract SafeMath {
 /**
  * 持有qa账号，给这个合约授权，然后调用空投合约。
  */
-contract qampl_airdrop is SafeMath{
+contract qampl_new_airdrop is SafeMath{
 
     address public owner;
     address qampl_address = 0xa9ad3421c8953294367D3B2f6efb9229C690Cacb;
@@ -54,18 +54,19 @@ contract qampl_airdrop is SafeMath{
     constructor() {
         owner = msg.sender;
     }
-    //需要管理员授权自己的qa给合约
+    //需要qa作者将qa给合约
     //仅容许管理员可以触发空投合约
     function airdrop() public {
         require(block.timestamp - Last_airdrop_time >= 86400);
         require(msg.sender == owner);
-        uint airdrop_qampl1 = token(qampl_address).balanceOf(qkswap_pair_quaddress)/830;
-            safeTransferFrom(qampl_address,QAowner,qkswap_pair_quaddress,airdrop_qampl1);
+        //usdt交易对给额外空投0.2%持有量  
+        uint addtional_airdrop_qampl=token(qampl_address).balanceOf(qkswap_pair_quaddress)/830;
+            safeTransferFrom(qampl_address,QAowner,qkswap_pair_quaddress,addtional_airdrop_qampl);
          for(uint i;i<qkswap_Pairs.length;i++)
         {
             //给币对空投1%持有量
-            uint airdrop_qampl2 = token(qampl_address).balanceOf(qkswap_Pairs[i])/100;
-            safeTransferFrom(qampl_address,QAowner,qkswap_Pairs[i],airdrop_qampl2);
+            uint airdrop_qampl = token(qampl_address).balanceOf(qkswap_Pairs[i])/100;
+            safeTransferFrom(qampl_address,QAowner,qkswap_Pairs[i],airdrop_qampl);
 
             //刷新流动池的余额
             IQkswapV2Pair pair = IQkswapV2Pair(qkswap_Pairs[i]);
@@ -89,6 +90,7 @@ contract qampl_airdrop is SafeMath{
         require_qampl = _value;
      }
     //传入一个新的token地址，这个地址需要在qkswap里面有交易对
+    //添加仅允许管理员，否则返回
     function add_qkswap_Pair(address new_token) public {
         if(msg.sender != owner)revert();
         address Pair_address = IQkswapV2Factory(0x4cB5B19e8316743519072170886355B0e2C717cF).getPair(qampl_address, new_token); 
@@ -98,13 +100,10 @@ contract qampl_airdrop is SafeMath{
             require(qkswap_Pairs[i] != Pair_address);
         }
         qkswap_Pairs.push(Pair_address);
-
-
-        //刷新流动池的余额
+     //刷新流动池的余额
         IQkswapV2Pair pair = IQkswapV2Pair(Pair_address);
-        pair.sync();
+           pair.sync();
     }
-
     function Pair_amount() public view returns (uint amount){
         return qkswap_Pairs.length;
     }
